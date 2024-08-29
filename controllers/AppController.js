@@ -1,10 +1,11 @@
-const dbClient = require('../utils/db');
 import redisClient from '../utils/redis';
+
+const dbClient = require('../utils/db');
 
 class AppController {
   static async getStatus(req, res) {
     try {
-      const isRedisAlive = redisClient.isAlive()
+      const isRedisAlive = redisClient.isAlive();
       const isDbAlive = dbClient.isAlive();
 
       res.status(200).json({ redis: isRedisAlive, db: isDbAlive });
