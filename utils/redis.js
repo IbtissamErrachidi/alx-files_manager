@@ -15,10 +15,7 @@ class RedisClient {
   }
 
   isAlive() {
-    if (this.client.connected) {
-      return true;
-    }
-    return false;
+    return this.client.connected;
   }
 
   async get(key) {
@@ -43,7 +40,7 @@ class RedisClient {
 
   async del(key) {
     try {
-      await this.delAsync(key); // Correction ici
+      await this.delAsync(key);
       return true;
     } catch (err) {
       console.error('Error deleting key from Redis:', err);
