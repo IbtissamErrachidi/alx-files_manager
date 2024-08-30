@@ -32,22 +32,21 @@ class UsersController {
       const key = `auth_${token}`;
       const userId = await redisClient.get(key);
 
-      if (userId) {
-        const users = dbClient.db.collection('users');
-        const idObject = new ObjectId(userId);
-
-        const user = await users.findOne({ _id: idObject });
-
-        if (user) {
-          return response.status(200).json({ id: userId, email: user.email });
-        } else {
-          console.log('User not found!');
-          return response.status(401).json({ error: 'Unauthorized' });
-        }
-      } else {
+      if (!userId) {
         console.log('Token not found in Redis!');
         return response.status(401).json({ error: 'Unauthorized' });
       }
+
+      const users = dbClient.db.collection('users');
+      const idObject = new ObjectId(userId);
+      const user = await users.findOne({ _id: idObject });
+
+      if (!user) {
+        console.log('User not found!');
+        return response.status(401).json({ error: 'Unauthorized' });
+      }
+
+      return response.status(200).json({ id: userId, email: user.email });
     } catch (error) {
       console.error('Error in getMe:', error);
       return response.status(500).json({ error: 'Internal server error' });

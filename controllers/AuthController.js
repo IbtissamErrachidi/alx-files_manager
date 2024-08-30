@@ -1,8 +1,8 @@
 import redisClient from '../utils/redis';
 
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const dbClient = require('../utils/db');
-const crypto = require('crypto');
 
 class AuthController {
   static async getConnect(req, res) {
@@ -27,7 +27,7 @@ class AuthController {
     const token = uuidv4();
 
     const key = `auth_${token}`;
-    await redisClient.set(key, user._id.toString(), 60 * 60 * 24);    
+    await redisClient.set(key, user._id.toString(), 60 * 60 * 24);
 
     return res.status(200).json({ token });
   }
