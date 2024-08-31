@@ -115,6 +115,7 @@ class FilesController {
         response.status(500).json({ error: 'Internal Server Error' });
       }
     }
+    return null;
   }
 }
 
