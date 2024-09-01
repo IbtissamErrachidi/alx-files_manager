@@ -3,29 +3,13 @@ import { promises as fs } from 'fs';
 import { ObjectId } from 'mongodb';
 import Queue from 'bull';
 import dbClient from '../utils/db';
-import redisClient from '../utils/redis';
+import { getUser } from '../utils/auth';
 
 const fileQueue = new Queue('fileQueue', 'redis://127.0.0.1:6379');
 
 class FilesController {
-  static async getUser(request) {
-    const token = request.header('X-Token');
-    const key = `auth_${token}`;
-    const userId = await redisClient.get(key);
-    if (userId) {
-      const users = dbClient.db.collection('users');
-      const idObject = new ObjectId(userId);
-      const user = await users.findOne({ _id: idObject });
-      if (!user) {
-        return null;
-      }
-      return user;
-    }
-    return null;
-  }
-
   static async postUpload(request, response) {
-    const user = await FilesController.getUser(request);
+    const user = await getUser(request);
     if (!user) {
       return response.status(401).json({ error: 'Unauthorized' });
     }
@@ -116,6 +100,50 @@ class FilesController {
       }
     }
     return null;
+  }
+
+  /**
+   * GET /files/:id
+   * retrieve a file document based on Id
+   *
+   * @param {import("express").Request} request :the request object
+   * @param {import("express").Response} response :the response object
+   */
+  static async getShow(request, response) {
+    const user = await getUser(request);
+    if (!user) return response.sendStatus(401);
+
+    const _id = ObjectId(request.params.id);
+    const files = dbClient.db.collection('files');
+    const file = await files.findOne(
+      { _id, userId: user._id },
+      { projection: { localPath: 0 } },
+    );
+    if (file) return response.json(file);
+    return response.sendStatus(404);
+  }
+
+  /**
+   * GET /files/
+   * retrieve all file documents for current user
+   *
+   * @param {import("express").Request} request :the request object
+   * @param {import("express").Response} response :the response object
+   */
+  static async getIndex(request, response) {
+    const user = await getUser(request);
+    if (!user) return response.sendStatus(401);
+
+    const { parentId, page } = request.query;
+    const pipeline = [
+      { $match: { parentId: parentId || 0, userId: user._id } },
+      { $limit: ((page || 0) + 1) * 20 },
+      { $project: { localPath: 0 } },
+    ];
+
+    const files = dbClient.db.collection('files');
+    const all = await files.aggregate(pipeline).toArray();
+    return response.json(all);
   }
 }
 
