@@ -149,6 +149,51 @@ class FilesController {
     const all = await files.aggregate(pipeline).toArray();
     return response.json(all);
   }
+
+  /**
+   * retrieve all file documents for current user
+   *
+   * @param {import("express").Request} request : the request object
+   * @param {import("express").Response} response : the response object
+   * @param {boolean} isPublic : true or false
+   */
+  static async setPublish(request, response, isPublic) {
+    const user = await getUser(request);
+    const { id } = request.params;
+    if (!user) return sendStatus(401, response);
+    if (!ObjectId.isValid(id)) return sendStatus(404, response);
+
+    const files = dbClient.db.collection('files');
+    const result = await files.findOneAndUpdate(
+      { _id: ObjectId(id), userId: user._id },
+      { $set: { isPublic } },
+      { projection: { localPath: 0 } },
+    );
+    if (!result.ok) return sendStatus(404, response);
+    return response.json({ ...result.value, isPublic });
+  }
+
+  /**
+   * GET /files/:id/publish
+   * make a file public
+   *
+   * @param {import("express").Request} request :the request object
+   * @param {import("express").Response} response :the response object
+   */
+  static putPublish(request, response) {
+    return FilesController.setPublish(request, response, true);
+  }
+
+  /**
+   * GET /files/:id/unpublish
+   * make the file private
+   *
+   * @param {import("express").Request} request :the request object
+   * @param {import("express").Response} response :the response object
+   */
+  static putUnpublish(request, response) {
+    return FilesController.setPublish(request, response, false);
+  }
 }
 
 module.exports = FilesController;
