@@ -136,8 +136,8 @@ class FilesController {
     const user = await getUser(request);
     if (!user) return sendStatus(401, response);
 
-    const parentId = request.query.parentId || 0;
-    const page = Number(request.query.page) || 0;
+    const parentId = request.query.parentId || { $ne: null };
+    const page = Number(`0${request.query.page}`, 10) || 0;
     const pipeline = [
       { $match: { parentId, userId: user._id } },
       { $skip: page * 20 },
