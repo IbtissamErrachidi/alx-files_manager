@@ -7,6 +7,15 @@ import { getUser } from '../utils/auth';
 import { sendStatus } from '../utils/httpres';
 
 const fileQueue = new Queue('fileQueue', 'redis://127.0.0.1:6379');
+const projection = {
+  _id: 0,
+  id: '$_id',
+  userId: 1,
+  name: 1,
+  type: 1,
+  isPublic: 1,
+  parentId: 1,
+};
 
 class FilesController {
   static async postUpload(request, response) {
@@ -119,7 +128,7 @@ class FilesController {
     const files = dbClient.db.collection('files');
     const file = await files.findOne(
       { _id: ObjectId(id), userId: user._id },
-      { projection: { localPath: 0 } },
+      { projection },
     );
     if (file) return response.json(file);
     return sendStatus(404, response);
@@ -142,7 +151,7 @@ class FilesController {
       { $match: { parentId, userId: user._id } },
       { $skip: page * 20 },
       { $limit: 20 },
-      { $project: { localPath: 0 } },
+      { $project: projection },
     ];
 
     const files = dbClient.db.collection('files');
@@ -167,7 +176,7 @@ class FilesController {
     const result = await files.findOneAndUpdate(
       { _id: ObjectId(id), userId: user._id },
       { $set: { isPublic } },
-      { projection: { localPath: 0 } },
+      { projection },
     );
     if (!result.ok) return sendStatus(404, response);
     return response.json({ ...result.value, isPublic });
