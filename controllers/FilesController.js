@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import Queue from 'bull';
 import dbClient from '../utils/db';
 import { getUser } from '../utils/auth';
+import { sendStatus } from '../utils/httpres';
 
 const fileQueue = new Queue('fileQueue', 'redis://127.0.0.1:6379');
 
@@ -111,16 +112,17 @@ class FilesController {
    */
   static async getShow(request, response) {
     const user = await getUser(request);
-    if (!user) return response.sendStatus(401);
+    const { id } = request.params;
+    if (!user) return sendStatus(401, response);
+    if (!ObjectId.isValid(id)) return sendStatus(404, response);
 
-    const _id = ObjectId(request.params.id);
     const files = dbClient.db.collection('files');
     const file = await files.findOne(
-      { _id, userId: user._id },
+      { _id: ObjectId(id), userId: user._id },
       { projection: { localPath: 0 } },
     );
     if (file) return response.json(file);
-    return response.sendStatus(404);
+    return sendStatus(404, response);
   }
 
   /**
@@ -132,7 +134,7 @@ class FilesController {
    */
   static async getIndex(request, response) {
     const user = await getUser(request);
-    if (!user) return response.sendStatus(401);
+    if (!user) return sendStatus(401, response);
 
     const { parentId, page } = request.query;
     const pipeline = [
