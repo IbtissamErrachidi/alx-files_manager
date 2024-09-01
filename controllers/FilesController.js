@@ -111,23 +111,18 @@ class FilesController {
    * @param {import("express").Response} response :the response object
    */
   static async getShow(request, response) {
-    try {
-      const user = await getUser(request);
-      const { id } = request.params;
-      if (!user) return sendStatus(401, response);
-      if (!ObjectId.isValid(id)) return sendStatus(404, response);
+    const user = await getUser(request);
+    const { id } = request.params;
+    if (!user) return sendStatus(401, response);
+    if (!ObjectId.isValid(id)) return sendStatus(404, response);
 
-      const files = dbClient.db.collection('files');
-      const file = await files.findOne(
-        { _id: ObjectId(id), userId: user._id },
-        { projection: { localPath: 0 } },
-      );
-      if (file) return response.json(file);
-      return sendStatus(404, response);
-    } catch (err) {
-      console.error(err);
-      return sendStatus(500, response);
-    }
+    const files = dbClient.db.collection('files');
+    const file = await files.findOne(
+      { _id: ObjectId(id), userId: user._id },
+      { projection: { localPath: 0 } },
+    );
+    if (file) return response.json(file);
+    return sendStatus(404, response);
   }
 
   /**
@@ -138,24 +133,19 @@ class FilesController {
    * @param {import("express").Response} response :the response object
    */
   static async getIndex(request, response) {
-    try {
-      const user = await getUser(request);
-      if (!user) return sendStatus(401, response);
+    const user = await getUser(request);
+    if (!user) return sendStatus(401, response);
 
-      const { parentId, page } = request.query;
-      const pipeline = [
-        { $match: { parentId: parentId || 0, userId: user._id } },
-        { $limit: ((page || 0) + 1) * 20 },
-        { $project: { localPath: 0 } },
-      ];
+    const { parentId, page } = request.query;
+    const pipeline = [
+      { $match: { parentId: parentId || 0, userId: user._id } },
+      { $limit: ((page || 0) + 1) * 20 },
+      { $project: { localPath: 0 } },
+    ];
 
-      const files = dbClient.db.collection('files');
-      const all = await files.aggregate(pipeline).toArray();
-      return response.json(all);
-    } catch (err) {
-      console.error(err);
-      return sendStatus(500, response);
-    }
+    const files = dbClient.db.collection('files');
+    const all = await files.aggregate(pipeline).toArray();
+    return response.json(all);
   }
 }
 
