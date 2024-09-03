@@ -126,11 +126,10 @@ class FilesController {
     if (!ObjectId.isValid(id)) return sendStatus(404, response);
 
     const files = dbClient.db.collection('files');
-    const file = await files.findOne(
-      { _id: ObjectId(id), userId: user._id },
-      { projection },
-    );
-    if (file) return response.json(file);
+    const file = await files.findOne({ _id: ObjectId(id) }, { projection });
+    if (file && (file.userId.equals(user._id) || file.isPublic)) {
+      return response.json(file);
+    }
     return sendStatus(404, response);
   }
 
