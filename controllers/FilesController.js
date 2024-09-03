@@ -202,6 +202,29 @@ class FilesController {
   static putUnpublish(request, response) {
     return FilesController.setPublish(request, response, false);
   }
+
+  /**
+   * GET /files/:id/data
+   * retrieve a file document based on Id
+   *
+   * @param {import("express").Request} request :the request object
+   * @param {import("express").Response} response :the response object
+   */
+  static async getFile(request, response) {
+    const { id } = request.params;
+    if (!ObjectId.isValid(id)) return sendStatus(404, response);
+
+    const files = dbClient.db.collection('files');
+    const file = await files.findOne({ _id: ObjectId(id) });
+    if (file) {
+      const onError = ({ statusCode }) => sendStatus(statusCode, response);
+      if (file.type === 'folder') return response.status(400).json({ error: "A folder doesn't have content" });
+      if (file.isPublic) return response.sendFile(file.localPath, onError);
+      const user = await getUser(request);
+      if (user && file.userId.equals(user._id)) return response.sendFile(file.localPath, onError);
+    }
+    return sendStatus(404, response);
+  }
 }
 
 module.exports = FilesController;
