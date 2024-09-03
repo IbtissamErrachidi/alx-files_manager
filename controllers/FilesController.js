@@ -161,7 +161,7 @@ class FilesController {
   }
 
   /**
-   * retrieve all file documents for current user
+   * set the privacy level of a file document
    *
    * @param {import("express").Request} request : the request object
    * @param {import("express").Response} response : the response object
@@ -178,7 +178,7 @@ class FilesController {
       { $set: { isPublic } },
       { projection },
     );
-    if (!result.ok) return sendStatus(404, response);
+    if (!result.value) return sendStatus(404, response);
     return response.json({ ...result.value, isPublic });
   }
 
