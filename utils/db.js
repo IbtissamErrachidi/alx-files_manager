@@ -31,6 +31,8 @@ class DBClient {
     const filesNum = await files.countDocuments();
     return filesNum;
   }
+
+  get filesColl() { return this.db.collection('files'); }
 }
 
 const dbClient = new DBClient();

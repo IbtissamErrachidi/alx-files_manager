@@ -125,8 +125,8 @@ class FilesController {
     if (!user) return sendStatus(401, response);
     if (!ObjectId.isValid(id)) return sendStatus(404, response);
 
-    const files = dbClient.db.collection('files');
-    const file = await files.findOne({ _id: ObjectId(id) }, { projection });
+    const file = await dbClient.filesColl
+      .findOne({ _id: ObjectId(id) }, { projection });
     if (file && (file.userId.equals(user._id) || file.isPublic)) {
       return response.json(file);
     }
@@ -144,8 +144,11 @@ class FilesController {
     const user = await getUser(request);
     if (!user) return sendStatus(401, response);
 
-    const parentId = request.query.parentId || { $ne: null };
+    let parentId = request.query.parentId || { $ne: null };
+    if (parentId === '0') parentId = 0;
+    else if (ObjectId.isValid(parentId)) parentId = ObjectId(parentId);
     const page = Math.floor(Number(`0${request.query.page}`)) || 0;
+
     const pipeline = [
       { $match: { parentId, userId: user._id } },
       { $skip: page * 20 },
@@ -153,8 +156,7 @@ class FilesController {
       { $project: projection },
     ];
 
-    const files = dbClient.db.collection('files');
-    const all = await files.aggregate(pipeline).toArray();
+    const all = await dbClient.filesColl.aggregate(pipeline).toArray();
     return response.json(all);
   }
 
@@ -167,12 +169,11 @@ class FilesController {
    */
   static async setPublish(request, response, isPublic) {
     const user = await getUser(request);
-    const { id } = request.params;
     if (!user) return sendStatus(401, response);
+    const { id } = request.params;
     if (!ObjectId.isValid(id)) return sendStatus(404, response);
 
-    const files = dbClient.db.collection('files');
-    const result = await files.findOneAndUpdate(
+    const result = await dbClient.filesColl.findOneAndUpdate(
       { _id: ObjectId(id), userId: user._id },
       { $set: { isPublic } },
       { projection },
@@ -214,14 +215,19 @@ class FilesController {
     const { id } = request.params;
     if (!ObjectId.isValid(id)) return sendStatus(404, response);
 
-    const files = dbClient.db.collection('files');
-    const file = await files.findOne({ _id: ObjectId(id) });
+    const file = await dbClient.filesColl.findOne({ _id: ObjectId(id) });
     if (file) {
+      if (file.type === 'folder') {
+        return response.status(400).json({ error: "A folder doesn't have content" });
+      }
       const onError = ({ statusCode }) => sendStatus(statusCode, response);
-      if (file.type === 'folder') return response.status(400).json({ error: "A folder doesn't have content" });
-      if (file.isPublic) return response.sendFile(file.localPath, onError);
+      if (file.isPublic) {
+        return response.sendFile(file.localPath, onError);
+      }
       const user = await getUser(request);
-      if (user && file.userId.equals(user._id)) return response.sendFile(file.localPath, onError);
+      if (user && file.userId.equals(user._id)) {
+        return response.sendFile(file.localPath, onError);
+      }
     }
     return sendStatus(404, response);
   }
