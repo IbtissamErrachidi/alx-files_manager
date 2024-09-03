@@ -145,7 +145,7 @@ class FilesController {
     const user = await getUser(request);
     if (!user) return sendStatus(401, response);
 
-    let parentId = request.query.parentId || { $ne: null };
+    let parentId = request.query.parentId || 0;
     if (parentId === '0') parentId = 0;
     const page = Number(`0${request.query.page}`, 10) || 0;
     const pipeline = [
