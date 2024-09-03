@@ -146,7 +146,7 @@ class FilesController {
     if (!user) return sendStatus(401, response);
 
     const parentId = request.query.parentId || { $ne: null };
-    const page = Math.abs(Number.parseInt(request.query.page, 10)) || 0;
+    const page = Math.floor(Number(`0${request.query.page}`)) || 0;
     const pipeline = [
       { $match: { parentId, userId: user._id } },
       { $skip: page * 20 },
