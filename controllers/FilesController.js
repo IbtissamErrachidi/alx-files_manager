@@ -217,9 +217,10 @@ class FilesController {
     if (!ObjectId.isValid(id)) return sendStatus(404, response);
 
     const file = await dbClient.filesColl.findOne({ _id: ObjectId(id) });
+    const size = request.query.size ? `_${request.query.size}` : '';
     if (file) {
       const args = [
-        file.localPath,
+        file.localPath + size,
         file.name,
         { headers: { 'Content-Type': mime.lookup(file.name) } },
         (err) => err && sendStatus(404, response),
