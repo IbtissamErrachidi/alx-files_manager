@@ -2,10 +2,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
 import { ObjectId } from 'mongodb';
 import Queue from 'bull';
+import mime from 'mime-types';
 import dbClient from '../utils/db';
 import { getUser } from '../utils/auth';
 import { sendStatus } from '../utils/httpres';
-import mime from 'mime-types';
 
 const fileQueue = new Queue('fileQueue', 'redis://127.0.0.1:6379');
 const projection = {
@@ -218,18 +218,18 @@ class FilesController {
 
     const file = await dbClient.filesColl.findOne({ _id: ObjectId(id) });
     if (file) {
-      if (file.type === 'folder') {
-        return response.status(400).json({ error: "A folder doesn't have content" });
-      }
       const args = [
         file.localPath,
         file.name,
         { headers: { 'Content-Type': mime.lookup(file.name) } },
-        () => sendStatus(404, response),
+        (err) => err && sendStatus(404, response),
       ];
-      if (file.isPublic) {
-        return response.download(...args);
+      if (file.type === 'folder') {
+        return response.status(400).json({ error: "A folder doesn't have content" });
       }
+
+      if (file.isPublic) return response.download(...args);
+
       const user = await getUser(request);
       if (user && file.userId.equals(user._id)) {
         return response.download(...args);
