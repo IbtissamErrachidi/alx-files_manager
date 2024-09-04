@@ -5,6 +5,7 @@ import Queue from 'bull';
 import dbClient from '../utils/db';
 import { getUser } from '../utils/auth';
 import { sendStatus } from '../utils/httpres';
+import mime from 'mime-types';
 
 const fileQueue = new Queue('fileQueue', 'redis://127.0.0.1:6379');
 const projection = {
@@ -220,13 +221,18 @@ class FilesController {
       if (file.type === 'folder') {
         return response.status(400).json({ error: "A folder doesn't have content" });
       }
-      const onError = ({ statusCode }) => sendStatus(statusCode, response);
+      const args = [
+        file.localPath,
+        file.name,
+        { headers: { 'Content-Type': mime.lookup(file.name) } },
+        () => sendStatus(404, response),
+      ];
       if (file.isPublic) {
-        return response.sendFile(file.localPath, onError);
+        return response.download(...args);
       }
       const user = await getUser(request);
       if (user && file.userId.equals(user._id)) {
-        return response.sendFile(file.localPath, onError);
+        return response.download(...args);
       }
     }
     return sendStatus(404, response);
