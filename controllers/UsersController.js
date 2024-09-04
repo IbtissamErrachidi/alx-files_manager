@@ -1,8 +1,11 @@
 import { ObjectId } from 'mongodb';
+import Queue from 'bull';
+import crypto from 'crypto';
+
+import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 
-const crypto = require('crypto');
-const dbClient = require('../utils/db');
+const userQueue = new Queue('userQueue');
 
 class UsersController {
   static async postNew(req, res) {
@@ -19,6 +22,7 @@ class UsersController {
     const hash = crypto.createHash('sha1').update(password).digest('hex');
     const result = await usersCollection.insertOne({ email, password: hash });
 
+    userQueue.add(result.insertedId);
     return res.status(201).json({ id: result.insertedId, email });
   }
 
