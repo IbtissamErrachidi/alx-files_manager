@@ -33,6 +33,8 @@ class DBClient {
   }
 
   get filesColl() { return this.db.collection('files'); }
+
+  get usersColl() { return this.db.collection('users'); }
 }
 
 const dbClient = new DBClient();
